@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<!-- Vault v10 -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -201,9 +202,8 @@ body{font-family:var(--fb);background:var(--bg);color:var(--text);min-height:100
 .scsel{width:100%;background:var(--bg2);border:1.5px solid var(--border);border-radius:9px;padding:8px 10px;font-family:var(--fb);font-size:12px;color:var(--text);outline:none;margin-top:6px;-webkit-appearance:none;cursor:pointer}
 
 /* LOGIN SCREEN */
-.login-screen{position:fixed;inset:0;z-index:500;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px}
-.login-screen.hidden{display:none;pointer-events:none}
-.login-screen{pointer-events:all}
+.login-screen{position:fixed;inset:0;z-index:500;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px;pointer-events:all}
+.login-screen.hidden{display:none !important;visibility:hidden !important;pointer-events:none !important;z-index:-1 !important}
 .login-logo{font-family:var(--ff);font-size:36px;font-weight:800;margin-bottom:8px}
 .login-logo span{color:var(--green)}
 .login-sub{font-size:14px;color:var(--text3);margin-bottom:40px;text-align:center;line-height:1.6}
@@ -415,6 +415,7 @@ input[type="date"]::-webkit-calendar-picker-indicator{filter:invert(.5);cursor:p
 
 </div><!-- /.app -->
 
+<div style="position:fixed;bottom:env(safe-area-inset-bottom,0);left:8px;z-index:99;font-family:var(--fm);font-size:9px;color:var(--text3);opacity:0.5;pointer-events:none;padding-bottom:6px">v10</div>
 <nav class="bnav">
   <button class="nb active" data-page="home"><span class="nb-ico">🏠</span><span>Home</span></button>
   <button class="nb" data-page="portfolio"><span class="nb-ico">📈</span><span>Portfolio</span></button>
@@ -1081,6 +1082,26 @@ document.querySelectorAll('input[type="number"]').forEach(inp=>{
   document.getElementById(id).addEventListener('keydown',e=>{ if(e.key==='Enter') submitRecord(); });
 });
 
+// ── NUCLEAR LOGIN SCREEN FIX ──
+// If firebase takes too long, ensure UI is never permanently blocked
+setTimeout(() => {
+  const ls = document.getElementById('loginScreen');
+  if (ls && !ls.classList.contains('hidden')) {
+    // Still showing after 8s — add bypass button
+    if (!document.getElementById('bypassBtn')) {
+      const btn = document.createElement('button');
+      btn.id = 'bypassBtn';
+      btn.textContent = 'Skip & use offline';
+      btn.style.cssText = 'position:fixed;bottom:40px;left:50%;transform:translateX(-50%);padding:12px 24px;background:#2d5a27;color:#fff;border:none;border-radius:12px;font-size:14px;font-weight:700;z-index:600;cursor:pointer';
+      btn.onclick = () => {
+        ls.style.cssText = 'display:none!important;pointer-events:none!important;z-index:-1!important';
+        btn.remove();
+      };
+      document.body.appendChild(btn);
+    }
+  }
+}, 8000);
+
 // ── INIT ──
 
 // ── MIGRATE old key to new key ──
@@ -1123,7 +1144,7 @@ document.getElementById('aboutOv').addEventListener('click', () => {
   <div class="sh-handle"></div>
   <div class="sh-title" style="display:flex;align-items:center;gap:10px">
     <span style="font-family:var(--ff);font-size:20px;font-weight:800"><span style="color:var(--text)">Va</span><span style="color:var(--green)">ult</span></span>
-    <span style="font-size:11px;color:var(--text3);font-family:var(--fm);margin-top:2px">v1.0</span>
+    <span style="font-size:11px;color:var(--text3);font-family:var(--fm);margin-top:2px">v10</span>
   </div>
   <div class="sh-body">
     <div class="srow">
