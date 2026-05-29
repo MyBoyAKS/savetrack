@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>SaveTrack</title>
+<title>Vault — by Amadeus Kenzie</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
@@ -243,7 +243,7 @@ input[type="date"]::-webkit-calendar-picker-indicator{filter:invert(.5);cursor:p
 
 <!-- LOGIN SCREEN -->
 <div class="login-screen" id="loginScreen">
-  <div class="login-logo">Save<span>Track</span></div>
+  <div class="login-logo"><span style="color:var(--text)">Va</span><span style="color:var(--green)">ult</span></div>
   <div class="login-sub">Your savings, spending &amp;<br>investment tracker</div>
   <button class="google-btn" id="googleSignInBtn">
     <svg class="google-ico" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
@@ -257,10 +257,11 @@ input[type="date"]::-webkit-calendar-picker-indicator{filter:invert(.5);cursor:p
 <div class="app" id="mainApp">
 
   <header class="hdr">
-    <div class="hdr-title">Save<span>Track</span></div>
+    <div class="hdr-title"><span style="color:var(--text)">Va</span><span style="color:var(--green)">ult</span></div>
     <div class="hdr-right">
       <span class="sync-dot" id="syncDot" title="Sync status"></span>
       <button class="ibtn" id="themeBtn">🌙</button>
+      <button class="ibtn" id="aboutBtn" style="background:var(--blue-l);border-color:var(--blue);color:var(--blue);font-weight:700;font-size:13px">?</button>
       <button class="ibtn" id="settingsBtn">⚙️</button>
       <div id="avatarWrap"></div>
     </div>
@@ -591,11 +592,11 @@ let charts = {};
 let activeModal = null;
 
 function save(push = true) {
-  localStorage.setItem('st_v4', JSON.stringify(S));
+  localStorage.setItem('vault_v1', JSON.stringify(S));
   if (push && firebaseReady && currentUser) pushToFirestore();
 }
 function load() {
-  try { const d = localStorage.getItem('st_v4'); if(d) S = {...S,...JSON.parse(d)}; } catch(e) {}
+  try { const d = localStorage.getItem('vault_v1'); if(d) S = {...S,...JSON.parse(d)}; } catch(e) {}
 }
 
 // ── FORMAT ──
@@ -940,7 +941,7 @@ function exportData() {
   const blob=new Blob([JSON.stringify(S,null,2)],{type:'application/json'});
   const url=URL.createObjectURL(blob);
   const a=document.createElement('a');
-  a.href=url; a.download='savetrack-backup-'+toISO(new Date())+'.json';
+  a.href=url; a.download='vault-backup-'+toISO(new Date())+'.json';
   a.click(); URL.revokeObjectURL(url);
   showToast('Backup downloaded ✓');
 }
@@ -1082,6 +1083,41 @@ renderDate();
 renderHome();
 populateConverterSelects();
 checkFirebaseConfig();
+
+document.getElementById('aboutBtn').addEventListener('click', () => {
+  document.getElementById('aboutSheet').classList.add('open');
+  document.getElementById('aboutOv').classList.add('open');
+});
+document.getElementById('aboutOv').addEventListener('click', () => {
+  document.getElementById('aboutSheet').classList.remove('open');
+  document.getElementById('aboutOv').classList.remove('open');
+});
 </script>
+
+<!-- ABOUT SHEET -->
+<div class="sheet-ov" id="aboutOv"></div>
+<div class="sheet" id="aboutSheet">
+  <div class="sh-handle"></div>
+  <div class="sh-title" style="display:flex;align-items:center;gap:10px">
+    <span style="font-family:var(--ff);font-size:20px;font-weight:800"><span style="color:var(--text)">Va</span><span style="color:var(--green)">ult</span></span>
+    <span style="font-size:11px;color:var(--text3);font-family:var(--fm);margin-top:2px">v1.0</span>
+  </div>
+  <div class="sh-body">
+    <div class="srow">
+      <div><div class="slbl">Developer</div><div class="ssub">Amadeus Kenzie</div></div>
+      <div style="font-size:20px">👨‍💻</div>
+    </div>
+    <div class="srow">
+      <div><div class="slbl">What is Vault?</div><div class="ssub">A personal tracker for savings, spending &amp; investments</div></div>
+    </div>
+    <div class="srow">
+      <div><div class="slbl">Data &amp; Privacy</div><div class="ssub">Your data stays on your device or your own Firebase account. Nothing is shared.</div></div>
+      <div style="font-size:20px">🔒</div>
+    </div>
+    <div class="srow" style="border:none">
+      <div><div class="slbl">Built with</div><div class="ssub">HTML · Firebase · Chart.js · GitHub Pages</div></div>
+    </div>
+  </div>
+</div>
 </body>
 </html>
