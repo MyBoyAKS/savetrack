@@ -471,12 +471,6 @@ input[type="date"]::-webkit-calendar-picker-indicator{filter:invert(.5);cursor:p
     <div class="srow"><div style="flex:1"><div class="slbl">Starting Balance</div><div style="display:flex;gap:7px;margin-top:6px"><input type="number" class="sinput" id="startInput" placeholder="e.g. 7000000" inputmode="decimal" min="0"><button class="sbtn" id="saveStartBtn">Save</button></div></div></div>
     <div class="srow"><div style="flex:1"><div class="slbl">Spending Limit <span style="font-size:10px;color:var(--text3)">(per entry)</span></div><div style="display:flex;gap:7px;margin-top:6px"><input type="number" class="sinput" id="limitInput" placeholder="e.g. 100000" inputmode="decimal" min="0"><button class="sbtn" style="background:var(--red)" id="saveLimitBtn">Save</button></div></div></div>
     <div class="srow"><div style="flex:1"><div class="slbl">Savings Goal</div><div style="display:flex;gap:7px;margin-top:6px"><input type="number" class="sinput" id="goalInput" placeholder="e.g. 10000000000" inputmode="decimal" min="0"><button class="sbtn" style="background:var(--amber)" id="saveGoalBtn">Save</button></div></div></div>
-    <div class="srow"><div><div class="slbl">Export Data</div><div class="ssub">Download backup as JSON</div></div><button class="ibtn" id="exportBtn" style="font-size:17px">💾</button></div>
-    <div class="srow"><div><div class="slbl">Import Data</div><div class="ssub">Restore from JSON backup</div></div><button class="ibtn" id="importBtn" style="font-size:17px">📂</button><input type="file" id="importFile" accept=".json" style="display:none"></div>
-    <div class="srow"><div><div class="slbl" style="color:var(--red)">Clear All Data</div><div class="ssub">Removes records, keeps settings</div></div><button class="ibtn" id="clearBtn" style="background:var(--red-l);border-color:var(--red);color:var(--red)">🗑️</button></div>
-    <div class="srow" id="signOutRow" style="display:none"><div><div class="slbl">Account</div><div class="ssub" id="signedInAs">—</div></div><button class="sbtn" style="background:var(--text3)" id="signOutBtn">Sign out</button></div>
-  </div>
-</div>
 
 <div class="toast" id="toast"></div>
 
@@ -945,27 +939,7 @@ function closeSettings() {
   document.getElementById('sheetOv').classList.remove('open');
 }
 
-// ── EXPORT / IMPORT ──
-function exportData() {
-  const blob=new Blob([JSON.stringify(S,null,2)],{type:'application/json'});
-  const url=URL.createObjectURL(blob);
-  const a=document.createElement('a');
-  a.href=url; a.download='vault-backup-'+toISO(new Date())+'.json';
-  a.click(); URL.revokeObjectURL(url);
-  showToast('Backup downloaded ✓');
-}
-function importData(file) {
-  const reader=new FileReader();
-  reader.onload=e=>{
-    try {
-      const imported=JSON.parse(e.target.result);
-      if (imported.records) S.records=imported.records;
-      if (imported.assets)  S.assets=imported.assets;
-      save(); renderAll(); showToast('Data imported ✓');
-    } catch(err){ showToast('Invalid backup file'); }
-  };
-  reader.readAsText(file);
-}
+
 
 // ── NAV ──
 function switchPage(name) {
@@ -1020,9 +994,7 @@ document.getElementById('sheetOv').addEventListener('click', closeSettings);
 document.getElementById('modalOv').addEventListener('click', closeModal);
 document.getElementById('modalSaveBtn').addEventListener('click', saveUpdate);
 document.getElementById('convBtn').addEventListener('click', doConvert);
-document.getElementById('exportBtn').addEventListener('click', exportData);
-document.getElementById('importBtn').addEventListener('click', ()=>document.getElementById('importFile').click());
-document.getElementById('importFile').addEventListener('change', e=>{ if(e.target.files[0]) importData(e.target.files[0]); });
+
 
 document.querySelectorAll('.nb').forEach(b=>b.addEventListener('click',()=>switchPage(b.dataset.page)));
 
