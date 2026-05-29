@@ -43,14 +43,29 @@ body{font-family:var(--fb);background:var(--bg);color:var(--text);min-height:100
 .app{max-width:480px;margin:0 auto;padding:0 0 90px}
 
 /* LOGIN */
-#loginScreen{position:fixed;inset:0;z-index:9999;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px}
-.login-logo{font-family:var(--ff);font-size:38px;font-weight:800;margin-bottom:8px}
-.login-sub{font-size:14px;color:var(--text3);margin-bottom:44px;text-align:center;line-height:1.6}
-.google-btn{display:flex;align-items:center;gap:12px;padding:15px 28px;background:var(--surface);border:1.5px solid var(--border2);border-radius:var(--r);font-family:var(--ff);font-size:15px;font-weight:700;cursor:pointer;color:var(--text);width:100%;max-width:300px;justify-content:center;margin-bottom:14px;transition:all .15s}
-.google-btn:active{transform:scale(.97)}
-.skip-btn{font-size:12px;color:var(--text3);background:none;border:none;cursor:pointer;text-decoration:underline;font-family:var(--fb);padding:8px}
-.login-note{font-size:11px;color:var(--text3);margin-top:20px;text-align:center;line-height:1.6;max-width:260px}
-.login-status{font-size:12px;color:var(--amber);margin-top:14px;min-height:18px;text-align:center}
+#loginScreen {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: var(--bg);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 32px;
+  pointer-events: auto;
+  visibility: visible; /* Add this */
+  opacity: 1; /* Add this */
+  transition: opacity 0.3s, visibility 0.3s; /* Add this */
+}
+
+#loginScreen.hidden {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  z-index: -1 !important;
+}
 
 /* HEADER */
 .hdr{position:sticky;top:0;z-index:100;background:var(--bg);padding:13px 18px 10px;border-bottom:1px solid var(--border);backdrop-filter:blur(12px);display:flex;align-items:center;justify-content:space-between}
@@ -740,39 +755,55 @@ function updateAccountUI(user){
 }
 
 // ── FIREBASE AUTH ──
-auth.onAuthStateChanged(user=>{
-  currentUser=user;
-  updateAccountUI(user);
-  if(user){
-    hideLoginScreen();
-    setSyncDot('syncing');
-    listenFirestore(user.uid);
-  }else{
+let isProcessingAuth = false;  // Add this flag
+
+auth.onAuthStateChanged(user => {
+  currentUser = user;
+  
+  if (user) {
+    if (!isProcessingAuth) {
+      hideLoginScreen();
+      setSyncDot('syncing');
+      listenFirestore(user.uid);
+    }
+  } else {
     setSyncDot('');
   }
 });
 
-document.getElementById('googleSignInBtn').addEventListener('click',async()=>{
-  document.getElementById('loginStatus').textContent='Opening Google sign-in…';
-  try{
-    const provider=new firebase.auth.GoogleAuthProvider();
-    const isSafari=/^((?!chrome|android).)*safari/i.test(navigator.userAgent);
-    if(isSafari){
-      await auth.signInWithRedirect(provider);
-    }else{
-      await auth.signInWithPopup(provider);
+// FIX: Handle redirect BEFORE the auth listener
+auth.getRedirectResult()
+  .then(result => {
+    if (result && result.user) {
+      isProcessingAuth = false;
+      // Auth state change will be caught by onAuthStateChanged()
     }
-  }catch(e){
-    document.getElementById('loginStatus').textContent='Sign-in failed: '+e.message;
+  })
+  .catch(e => {
+    isProcessingAuth = false;
+    console.log('Redirect result error:', e.message);
+  });
+
+document.getElementById('googleSignInBtn').addEventListener('click', async () => {
+  isProcessingAuth = true;  // Set flag BEFORE auth attempt
+  document.getElementById('loginStatus').textContent = 'Opening Google sign-in…';
+  try {
+    const provider = new firebase.auth.GoogleAuthProvider();
+    const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+    
+    if (isSafari) {
+      await auth.signInWithRedirect(provider);
+      // Redirect will reload page, flag will be reset
+    } else {
+      const result = await auth.signInWithPopup(provider);
+      isProcessingAuth = false;
+      if (result.user) hideLoginScreen();
+    }
+  } catch (e) {
+    isProcessingAuth = false;
+    document.getElementById('loginStatus').textContent = 'Sign-in failed: ' + e.message;
   }
 });
-
-// Handle Safari redirect result on page load
-auth.getRedirectResult().then(result=>{
-  if(result&&result.user){
-    hideLoginScreen();
-  }
-}).catch(e=>{console.log('Redirect result:',e.message);});
 
 document.getElementById('skipLoginBtn').addEventListener('click',()=>{
   hideLoginScreen();
