@@ -476,18 +476,17 @@ input[type="date"]::-webkit-calendar-picker-indicator{filter:invert(.5);cursor:p
 
 <div class="toast" id="toast"></div>
 
-<script type="module">
-// ── FIREBASE DYNAMIC LOAD ──
+<script>
+// ── FIREBASE ──
 let db = null, auth = null, currentUser = null, fbApp = null;
 let firebaseReady = false;
-let pendingSync = false;
 
 async function initFirebase(config) {
   try {
     const { initializeApp } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js');
     const { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged }
       = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js');
-    const { getFirestore, doc, setDoc, getDoc, onSnapshot }
+    const { getFirestore, doc, setDoc, onSnapshot }
       = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
 
     fbApp = initializeApp(config);
@@ -527,9 +526,7 @@ async function initFirebase(config) {
       updateAccountUI(user);
       if (user) {
         const ls = document.getElementById('loginScreen');
-        ls.classList.add('hidden');
-        ls.style.display = 'none';
-        ls.style.pointerEvents = 'none';
+        hideLoginScreen();
         setSyncDot('syncing');
         // Listen for real-time updates from Firestore
         const userDoc = doc(db, 'users', user.uid);
@@ -1082,25 +1079,41 @@ document.querySelectorAll('input[type="number"]').forEach(inp=>{
   document.getElementById(id).addEventListener('keydown',e=>{ if(e.key==='Enter') submitRecord(); });
 });
 
-// ── NUCLEAR LOGIN SCREEN FIX ──
-// If firebase takes too long, ensure UI is never permanently blocked
-setTimeout(() => {
-  const ls = document.getElementById('loginScreen');
-  if (ls && !ls.classList.contains('hidden')) {
-    // Still showing after 8s — add bypass button
-    if (!document.getElementById('bypassBtn')) {
-      const btn = document.createElement('button');
-      btn.id = 'bypassBtn';
-      btn.textContent = 'Skip & use offline';
-      btn.style.cssText = 'position:fixed;bottom:40px;left:50%;transform:translateX(-50%);padding:12px 24px;background:#2d5a27;color:#fff;border:none;border-radius:12px;font-size:14px;font-weight:700;z-index:600;cursor:pointer';
-      btn.onclick = () => {
-        ls.style.cssText = 'display:none!important;pointer-events:none!important;z-index:-1!important';
-        btn.remove();
-      };
-      document.body.appendChild(btn);
-    }
+
+
+// ── GLOBAL LOGIN HANDLERS (work immediately, no firebase needed) ──
+window.handleGoogleSignIn = function() {
+  const status = document.getElementById('loginStatus');
+  if (!firebaseReady) {
+    if (status) status.textContent = 'Connecting... please wait';
+    // Try to init firebase first
+    checkFirebaseConfig();
+    setTimeout(() => {
+      if (window._fbSignIn) {
+        window._fbSignIn();
+      } else {
+        if (status) status.textContent = 'Still loading... try again in a moment';
+      }
+    }, 2000);
+    return;
   }
-}, 8000);
+  if (window._fbSignIn) window._fbSignIn();
+};
+
+window.skipLogin = function() {
+  hideLoginScreen();
+  showToast('Using local storage only');
+  setSyncDot('');
+};
+
+function hideLoginScreen() {
+  const ls = document.getElementById('loginScreen');
+  if (ls) {
+    ls.style.display = 'none';
+    ls.style.pointerEvents = 'none';
+    ls.style.zIndex = '-1';
+  }
+}
 
 // ── INIT ──
 
