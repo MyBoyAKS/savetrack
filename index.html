@@ -268,7 +268,7 @@ input[type="date"]::-webkit-calendar-picker-indicator{filter:invert(.5);cursor:p
   </header>
 
   <!-- Firebase setup banner (shown if not configured) -->
-  <div class="fb-setup" id="fbSetupBanner" style="display:none">
+  <div class="fb-setup" id="fbSetupBanner" style="display:none!important">
     <div class="fb-setup-title">🔧 Firebase Setup Required for Sync</div>
     <div class="fb-setup-body">
       To enable cross-device sync, you need a free Firebase project:
@@ -972,19 +972,22 @@ function renderAll() { renderHome(); }
 
 // ── FIREBASE CONFIG UI ──
 function checkFirebaseConfig() {
-  const stored = localStorage.getItem('st_fbconfig');
-  if (stored) {
-    try {
-      const cfg = JSON.parse(stored);
-      initFirebase(cfg).then(ok => {
-        if (!ok) document.getElementById('fbSetupBanner').style.display='block';
-      });
-      return;
-    } catch(e) {}
-  }
-  // No config: show login screen with skip option
-  document.getElementById('loginScreen').classList.remove('hidden');
-  document.getElementById('fbSetupBanner').style.display='block';
+  // Config is baked in — no setup needed for users
+  const cfg = {
+    apiKey: "AIzaSyBnSK8ubq-NX4eg-T15IOwtTswdSyxipts",
+    authDomain: "hahahaprivateken.firebaseapp.com",
+    projectId: "hahahaprivateken",
+    storageBucket: "hahahaprivateken.firebasestorage.app",
+    messagingSenderId: "181449499542",
+    appId: "1:181449499542:web:64b410f664766d518c73b7"
+  };
+  localStorage.setItem('st_fbconfig', JSON.stringify(cfg));
+  initFirebase(cfg).then(ok => {
+    if (!ok) {
+      // Firebase failed, fall back to local only
+      document.getElementById('loginScreen').classList.remove('hidden');
+    }
+  });
 }
 
 document.getElementById('fbSaveBtn').addEventListener('click', () => {
