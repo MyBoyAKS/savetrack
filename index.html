@@ -87,6 +87,7 @@ body{font-family:var(--fb);background:var(--bg);color:var(--text);min-height:100
 .stat{background:var(--surface);border:1px solid var(--border);border-radius:var(--rsm);padding:11px 13px}
 .stat.danger{background:var(--red-l)}.stat.info{background:var(--blue-l)}.stat.success{background:var(--green-l)}
 .stat.warn{background:var(--amber-l)}
+.sheet .tog{display:block}
 .stat-ico{font-size:15px;margin-bottom:4px}
 .stat-lbl{font-size:9px;text-transform:uppercase;letter-spacing:.7px;color:var(--text3);margin-bottom:2px}
 .stat-val{font-family:var(--fm);font-size:12px;font-weight:500;color:var(--text);word-break:break-all}
@@ -190,9 +191,9 @@ body{font-family:var(--fb);background:var(--bg);color:var(--text);min-height:100
 .srow:last-child{border-bottom:none}
 .slbl{font-size:13px;color:var(--text)}
 .ssub{font-size:10px;color:var(--text3);margin-top:1px}
-.tog{width:42px;height:25px;border-radius:13px;background:var(--bg3);border:none;cursor:pointer;position:relative;transition:background .2s;flex-shrink:0}
+.tog{width:42px;height:25px;border-radius:13px;background:var(--bg3);border:none;cursor:pointer;position:relative;transition:background .2s;flex-shrink:0;overflow:hidden;-webkit-mask-image:-webkit-radial-gradient(white,black)}
 .tog.on{background:var(--green)}
-.tog::after{content:'';position:absolute;width:19px;height:19px;border-radius:50%;background:#fff;top:3px;left:3px;transition:transform .2s cubic-bezier(.34,1.56,.64,1);box-shadow:0 1px 4px rgba(0,0,0,.2)}
+.tog::after{content:'';position:absolute;width:19px;height:19px;border-radius:50%;background:#fff;top:3px;left:3px;transition:transform .2s cubic-bezier(.34,1.56,.64,1);box-shadow:0 1px 4px rgba(0,0,0,.2);-webkit-transform:translateZ(0)}
 .tog.on::after{transform:translateX(17px)}
 .sinput{flex:1;background:var(--bg2);border:1.5px solid var(--border);border-radius:9px;padding:9px 11px;font-family:var(--fm);font-size:13px;color:var(--text);outline:none;min-width:0}
 .sinput:focus{border-color:var(--green)}
@@ -522,9 +523,13 @@ async function initFirebase(config) {
         onSnapshot(userDoc, snap => {
           if (snap.exists()) {
             const remote = snap.data();
-            // Merge: remote wins for records/assets, local wins for settings
-            S.records = remote.records || S.records;
-            S.assets  = remote.assets  || S.assets;
+            // Merge: remote wins for everything
+            S.records     = remote.records     || S.records;
+            S.assets      = remote.assets      || S.assets;
+            S.currency    = remote.currency    || S.currency;
+            S.startBal    = remote.startBal    ?? S.startBal;
+            S.spendLimit  = remote.spendLimit  ?? S.spendLimit;
+            S.savingsGoal = remote.savingsGoal ?? S.savingsGoal;
             save(false); // save locally without re-pushing to avoid loop
             renderAll();
             setSyncDot('synced');
@@ -553,6 +558,10 @@ async function pushToFirestore() {
     await setDoc(doc(db, 'users', currentUser.uid), {
       records: S.records,
       assets: S.assets,
+      currency: S.currency,
+      startBal: S.startBal,
+      spendLimit: S.spendLimit,
+      savingsGoal: S.savingsGoal,
       updatedAt: Date.now()
     });
     setSyncDot('synced');
