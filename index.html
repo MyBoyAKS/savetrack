@@ -398,7 +398,17 @@ input[type="date"]::-webkit-calendar-picker-indicator{filter:invert(.5);cursor:p
     <div class="srow"><div style="flex:1"><div class="slbl">Spending Limit <span style="font-size:10px;color:var(--text3)">(per entry)</span></div><div style="display:flex;gap:7px;margin-top:6px"><input type="number" class="sinput" id="limitInput" placeholder="e.g. 100000" inputmode="decimal" min="0"><button class="sbtn" style="background:var(--red)" id="saveLimitBtn">Save</button></div></div></div>
     <div class="srow"><div style="flex:1"><div class="slbl">Savings Goal</div><div style="display:flex;gap:7px;margin-top:6px"><input type="number" class="sinput" id="goalInput" placeholder="e.g. 10000000000" inputmode="decimal" min="0"><button class="sbtn" style="background:var(--amber)" id="saveGoalBtn">Save</button></div></div></div>
     <div class="srow"><div><div class="slbl" style="color:var(--red)">Clear All Data</div><div class="ssub">Removes records, keeps settings</div></div><button class="ibtn" id="clearBtn" style="background:var(--red-l);border-color:var(--red);color:var(--red)">🗑️</button></div>
-    <div class="srow" id="signOutRow" style="display:none"><div><div class="slbl">Account</div><div class="ssub" id="signedInAs">—</div></div><button class="sbtn" style="background:var(--text3)" id="signOutBtn">Sign out</button></div>
+    <div class="srow" id="signOutRow" style="display:none">
+  <div><div class="slbl">Account</div><div class="ssub" id="signedInAs">—</div></div>
+  <button class="sbtn" style="background:var(--text3)" id="signOutBtn">Sign out</button>
+</div>
+<div class="srow" id="signInRow">
+  <div><div class="slbl">Account</div><div class="ssub">Sync across devices</div></div>
+  <button class="sbtn" style="background:var(--green);display:flex;align-items:center;gap:6px" id="settingsSignInBtn">
+    <svg width="14" height="14" viewBox="0 0 24 24"><path fill="#fff" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#fff" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#fff" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="#fff" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+    Sign in with Google
+  </button>
+</div>
   </div>
 </div>
 
@@ -735,13 +745,18 @@ function hideLoginScreen(){
 }
 
 function updateAccountUI(user){
-  const wrap=document.getElementById('avatarWrap'),row=document.getElementById('signOutRow');
+  const wrap=document.getElementById('avatarWrap');
+  const signOutRow=document.getElementById('signOutRow');
+  const signInRow=document.getElementById('signInRow');
   if(user){
     wrap.innerHTML=user.photoURL?`<img class="user-av" src="${user.photoURL}" alt="avatar">`:`<div class="ibtn" style="background:var(--green);color:#fff;font-size:12px;font-weight:700">${user.displayName?.[0]||'?'}</div>`;
     document.getElementById('signedInAs').textContent=user.email||user.displayName||'';
-    row.style.display='flex';
+    signOutRow.style.display='flex';
+    if(signInRow) signInRow.style.display='none';
   }else{
-    wrap.innerHTML='';row.style.display='none';
+    wrap.innerHTML='';
+    signOutRow.style.display='none';
+    if(signInRow) signInRow.style.display='flex';
   }
 }
 
@@ -774,36 +789,57 @@ auth.getRedirectResult().then(result => {
 });
 
 // onAuthStateChanged is the single source of truth
-// It fires on every page load, including after redirect
 auth.onAuthStateChanged(user => {
-  hideLoadingScreen(); // always hide loading screen when auth is resolved
-  currentUser = user;
-  updateAccountUI(user);
   if(user){
+    hideLoadingScreen();
     hideLoginScreen();
+    currentUser = user;
+    updateAccountUI(user);
     setSyncDot('syncing');
     listenFirestore(user.uid);
   } else {
-    // Not signed in — now show login screen
-    showLoginScreen();
-    setSyncDot('');
+    // Not signed in yet — but on Safari after redirect, auth can take
+    // a few extra seconds to restore due to ITP cookie restrictions.
+    // Wait up to 4 seconds before showing the login screen.
+    const alreadyWaiting = document.getElementById('loadingScreen').dataset.waiting;
+    if(alreadyWaiting){
+      hideLoadingScreen();
+      showLoginScreen();
+      setSyncDot('');
+    } else {
+      document.getElementById('loadingScreen').dataset.waiting = '1';
+      setTimeout(() => {
+        // Check one more time — user might have been restored by now
+        const u = auth.currentUser;
+        if(u){
+          hideLoadingScreen();
+          hideLoginScreen();
+          currentUser = u;
+          updateAccountUI(u);
+          setSyncDot('syncing');
+          listenFirestore(u.uid);
+        } else {
+          hideLoadingScreen();
+          showLoginScreen();
+          setSyncDot('');
+        }
+      }, 4000);
+    }
   }
 });
 
-document.getElementById('googleSignInBtn').addEventListener('click', async() => {
-  document.getElementById('loginStatus').textContent = 'Opening Google sign-in…';
-  try{
-    const provider = new firebase.auth.GoogleAuthProvider();
-    const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
-    if(isSafari){
-      // Redirect is more reliable on Safari/iOS
-      await auth.signInWithRedirect(provider);
-    } else {
-      await auth.signInWithPopup(provider);
-    }
-  } catch(e){
-    document.getElementById('loginStatus').textContent = 'Sign-in failed: ' + e.message;
-  }
+function doGoogleSignIn(statusElId) {
+  const statusEl = document.getElementById(statusElId);
+  if(statusEl) statusEl.textContent = 'Redirecting to Google…';
+  const provider = new firebase.auth.GoogleAuthProvider();
+  provider.setCustomParameters({ prompt: 'select_account' });
+  auth.signInWithRedirect(provider).catch(e => {
+    if(statusEl) statusEl.textContent = 'Sign-in failed: ' + e.message;
+  });
+}
+
+document.getElementById('googleSignInBtn').addEventListener('click', () => {
+  doGoogleSignIn('loginStatus');
 });
 
 document.getElementById('skipLoginBtn').addEventListener('click', () => {
@@ -817,8 +853,12 @@ document.getElementById('signOutBtn').addEventListener('click', async() => {
   await auth.signOut();
   currentUser = null;
   updateAccountUI(null);
-  showToast('Signed out');
-  // onAuthStateChanged will fire and show login screen automatically
+  showToast('Signed out — tap Sign in with Google in Settings to sign back in');
+});
+
+document.getElementById('settingsSignInBtn').addEventListener('click', () => {
+  closeSettings();
+  doGoogleSignIn('loginStatus');
 });
 
 // ── NAV ──
